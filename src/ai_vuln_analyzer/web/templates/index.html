@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Vulnerability Analyzer</title>
+    <style>
+        :root {
+            --bg: #f3efe5;
+            --panel: rgba(255, 252, 245, 0.92);
+            --ink: #17211f;
+            --muted: #5d6a67;
+            --line: #d2c5ab;
+            --accent: #b14f2d;
+            --accent-2: #235347;
+            --ok: #2f6a48;
+            --warn: #8b2e2e;
+            --shadow: 0 18px 50px rgba(36, 31, 22, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(177, 79, 45, 0.18), transparent 32%),
+                radial-gradient(circle at top right, rgba(35, 83, 71, 0.15), transparent 28%),
+                linear-gradient(180deg, #efe7d6 0%, var(--bg) 100%);
+        }
+
+        .wrap {
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(23, 33, 31, 0.07);
+            color: var(--accent-2);
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(34px, 5vw, 62px);
+            line-height: 0.98;
+            max-width: 10ch;
+        }
+
+        .lead {
+            max-width: 64ch;
+            color: var(--muted);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid rgba(210, 197, 171, 0.9);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+        }
+
+        .form-panel {
+            padding: 24px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .result-panel {
+            padding: 28px;
+        }
+
+        .section-title {
+            margin: 0 0 16px;
+            font-size: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.72);
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 220px;
+            resize: vertical;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .inline {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        button {
+            width: 100%;
+            border: 0;
+            border-radius: 16px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, var(--accent), #c4763d);
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .error {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(139, 46, 46, 0.1);
+            color: var(--warn);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin: 20px 0 28px;
+        }
+
+        .stat {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(210, 197, 171, 0.9);
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 6px;
+        }
+
+        .finding {
+            border-top: 1px solid rgba(210, 197, 171, 0.9);
+            padding-top: 22px;
+            margin-top: 22px;
+        }
+
+        .finding:first-of-type {
+            border-top: 0;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0 14px;
+        }
+
+        .pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(35, 83, 71, 0.08);
+            color: var(--accent-2);
+            font-size: 13px;
+        }
+
+        pre {
+            margin: 0;
+            padding: 16px;
+            overflow: auto;
+            border-radius: 16px;
+            background: #1f2524;
+            color: #edf5ee;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        @media (max-width: 920px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-panel {
+                position: static;
+            }
+
+            .inline,
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <section class="hero">
+            <span class="eyebrow">C/C++ Security Review</span>
+            <h1>코드를 올리면 취약점을 분석하는 웹 UI</h1>
+            <p class="lead">
+                C/C++ 소스코드를 업로드하거나 붙여넣으면 정적 분석, Planner/Manager/Agent, Teacher/Student, Verifier 루프를 거쳐
+                취약점과 패치 제안을 표시합니다. 초기 기본값은 <strong>mock provider</strong>입니다.
+            </p>
+        </section>
+
+        <div class="grid">
+            <section class="panel form-panel">
+                <h2 class="section-title">분석 요청</h2>
+                {% if error %}
+                    <div class="error">{{ error }}</div>
+                {% endif %}
+                <form action="/scan" method="post" enctype="multipart/form-data">
+                    <div class="field">
+                        <label for="files">C/C++ 파일 업로드</label>
+                        <input id="files" type="file" name="files" multiple accept=".c,.cc,.cpp,.cxx,.h,.hh,.hpp,.hxx">
+                    </div>
+                    <div class="field">
+                        <label for="filename">붙여넣기 코드 파일명</label>
+                        <input id="filename" type="text" name="filename" value="snippet.c">
+                    </div>
+                    <div class="field">
+                        <label for="pasted_code">또는 코드 붙여넣기</label>
+                        <textarea id="pasted_code" name="pasted_code" placeholder="#include &lt;string.h&gt;&#10;&#10;void copy_input(char *input) {&#10;    char buf[16];&#10;    strcpy(buf, input);&#10;}"></textarea>
+                    </div>
+                    <div class="inline">
+                        <div class="field">
+                            <label for="provider">Provider</label>
+                            <select id="provider" name="provider">
+                                <option value="mock" {% if provider == "mock" %}selected{% endif %}>mock</option>
+                                <option value="openai" {% if provider == "openai" %}selected{% endif %}>openai</option>
+                                <option value="anthropic" {% if provider == "anthropic" %}selected{% endif %}>anthropic</option>
+                                <option value="openrouter" {% if provider == "openrouter" %}selected{% endif %}>openrouter</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="max_rounds">Max Rounds</label>
+                            <input id="max_rounds" type="number" name="max_rounds" min="1" value="{{ max_rounds }}">
+                        </div>
+                        <div class="field">
+                            <label for="confidence_threshold">Threshold</label>
+                            <input id="confidence_threshold" type="number" step="0.01" min="0" max="1" name="confidence_threshold" value="{{ confidence_threshold }}">
+                        </div>
+                    </div>
+                    <button type="submit">취약점 분석 시작</button>
+                </form>
+            </section>
+
+            <section class="panel result-panel">
+                {% if not report %}
+                    <h2 class="section-title">결과</h2>
+                    <p class="muted">아직 분석 결과가 없습니다. 파일을 업로드하거나 코드를 붙여넣고 분석을 시작하세요.</p>
+                {% else %}
+                    <h2 class="section-title">분석 결과</h2>
+                    <div class="stats">
+                        <div class="stat">Total<strong>{{ report.summary.total_findings }}</strong></div>
+                        <div class="stat">Verified<strong>{{ report.summary.verified_findings }}</strong></div>
+                        <div class="stat">Rejected<strong>{{ report.summary.rejected_findings }}</strong></div>
+                        <div class="stat">Unresolved<strong>{{ report.summary.unresolved_findings }}</strong></div>
+                    </div>
+
+                    {% for finding in report.artifacts.findings %}
+                        {% set patch = report.artifacts.patches | selectattr("finding_id", "equalto", finding.id) | list | first %}
+                        {% set verification = report.artifacts.verifications | selectattr("finding_id", "equalto", finding.id) | list | first %}
+                        <article class="finding">
+                            <h3>{{ loop.index }}. {{ finding.vulnerability_type }}</h3>
+                            <div class="meta">
+                                <span class="pill">{{ finding.cwe }}</span>
+                                <span class="pill">{{ finding.location.file }}</span>
+                                <span class="pill">{{ finding.location.function or "-" }}</span>
+                                <span class="pill">status: {{ finding.status }}</span>
+                                <span class="pill">confidence: {{ finding.confidence }}</span>
+                            </div>
+                            <p><strong>Evidence</strong><br>{{ finding.evidence }}</p>
+                            <p><strong>Root Cause</strong><br>{{ finding.root_cause or "N/A" }}</p>
+                            {% if patch %}
+                                <p><strong>Patch Suggestion</strong></p>
+                                <pre>{{ patch.diff }}</pre>
+                            {% endif %}
+                            {% if verification %}
+                                <p><strong>Verification</strong><br>
+                                verified={{ verification.verified }},
+                                confidence={{ verification.confidence }},
+                                rerun_agents={{ verification.rerun_agents | join(", ") }}</p>
+                                <p class="muted">{{ verification.reason }}</p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</body>
+</html>
