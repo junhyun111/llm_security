@@ -16,7 +16,7 @@ from ai_vuln_analyzer.analysis.cfg_analyzer import CfgAnalyzer
 from ai_vuln_analyzer.analysis.file_collector import collect_cpp_files
 from ai_vuln_analyzer.config import Settings
 from ai_vuln_analyzer.core.report import build_summary
-from ai_vuln_analyzer.core.schemas import AnalysisBundle, FinalReport, PipelineArtifacts, VulnerabilityFinding
+from ai_vuln_analyzer.core.schemas import FinalReport, PipelineArtifacts, VulnerabilityFinding
 from ai_vuln_analyzer.llm.anthropic_client import AnthropicClient
 from ai_vuln_analyzer.llm.base import LLMClient
 from ai_vuln_analyzer.llm.mock_client import MockLLMClient
@@ -74,7 +74,6 @@ class VulnerabilityPipeline:
         files = collect_cpp_files(target_path)
         ast_results = [self.ast_analyzer.analyze(file) for file in files]
         cfg_results = [self.cfg_analyzer.analyze(file) for file in files]
-        analysis = AnalysisBundle(ast=ast_results, cfg=cfg_results)
         planner_decision = self.planner.plan(ast_results)
         selected_agents = self.manager.select_agents(planner_decision)
         findings = self._merge_findings(agent.run(ast_results, cfg_results) for agent in selected_agents)

@@ -71,14 +71,14 @@ pip install -e .[dev,web,openai,anthropic]
 
 ```powershell
 $env:PYTHONPATH="src"
-python -m ai_vuln_analyzer.cli scan examples/vulnerable --provider mock
+python -m ai_vuln_analyzer.cli scan <target_path> --provider mock
 ```
 
 설정 파일의 provider를 그대로 쓰려면 `--provider`를 생략해도 됩니다.
 
 ```powershell
 $env:PYTHONPATH="src"
-python -m ai_vuln_analyzer.cli scan examples/vulnerable
+python -m ai_vuln_analyzer.cli scan <target_path>
 ```
 
 ## 웹 실행
@@ -89,15 +89,6 @@ python -m ai_vuln_analyzer.cli serve
 ```
 
 브라우저에서 `http://127.0.0.1:8000`으로 접속하면 됩니다.
-
-## 예제 코드
-
-예제 취약 코드는 `examples/vulnerable` 아래에 있습니다.
-
-- `bof.c`
-- `uaf.c`
-- `integer_overflow.c`
-- `null_deref.c`
 
 ## 현재 한계
 
