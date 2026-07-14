@@ -26,10 +26,6 @@ class UploadValidationError(ValueError):
     pass
 
 
-class ScanTimeoutError(TimeoutError):
-    pass
-
-
 def allowed_suffix(filename: str) -> bool:
     return Path(filename).suffix.lower() in CPP_EXTENSIONS
 
@@ -166,17 +162,10 @@ async def scan(
                 (temp_path / safe_name).write_bytes(pasted_bytes)
 
             scan_settings = build_scan_settings(effective_provider, max_rounds, confidence_threshold)
-            report = await _run_pipeline_limited(
-                scan_settings, temp_path, settings.web_scan_timeout_seconds,
-            )
+            report = await _run_pipeline_limited(scan_settings, temp_path)
     except UploadValidationError as exc:
         return _error_response(
             request, str(exc), effective_provider, max_rounds, confidence_threshold, 413,
-        )
-    except ScanTimeoutError:
-        return _error_response(
-            request, "분석 제한 시간을 초과했습니다.",
-            effective_provider, max_rounds, confidence_threshold, 504,
         )
     except Exception as exc:
         message = str(exc).strip() or exc.__class__.__name__
@@ -195,15 +184,15 @@ async def scan(
 
 
 async def _run_pipeline_limited(
-    settings: Settings, temp_path: Path, timeout_seconds: int
+    settings: Settings, temp_path: Path
 ) -> FinalReport:
     async with _SCAN_SEMAPHORE:
         return await asyncio.to_thread(
-            _run_pipeline_process, settings.model_dump(mode="json"), str(temp_path), timeout_seconds
+            _run_pipeline_process, settings.model_dump(mode="json"), str(temp_path)
         )
 
 
-def _run_pipeline_process(settings_data: dict, target_path: str, timeout_seconds: int) -> FinalReport:
+def _run_pipeline_process(settings_data: dict, target_path: str) -> FinalReport:
     context = multiprocessing.get_context("spawn")
     result_queue = context.Queue(maxsize=1)
     process = context.Process(
@@ -212,19 +201,16 @@ def _run_pipeline_process(settings_data: dict, target_path: str, timeout_seconds
         daemon=True,
     )
     process.start()
-    try:
-        status, payload = result_queue.get(timeout=max(1, timeout_seconds))
-    except queue.Empty as exc:
-        timed_out = process.is_alive()
-        if timed_out:
-            process.terminate()
-            process.join(5)
-        result_queue.close()
-        if not timed_out:
-            raise RuntimeError(
-                f"Analysis process exited without a result (exit code {process.exitcode})."
-            ) from exc
-        raise ScanTimeoutError("Analysis process exceeded its time limit.") from exc
+    while True:
+        try:
+            status, payload = result_queue.get(timeout=1)
+            break
+        except queue.Empty as exc:
+            if not process.is_alive():
+                result_queue.close()
+                raise RuntimeError(
+                    f"Analysis process exited without a result (exit code {process.exitcode})."
+                ) from exc
     process.join(5)
     if process.is_alive():
         process.terminate()

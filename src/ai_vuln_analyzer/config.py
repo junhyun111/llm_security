@@ -67,9 +67,8 @@ class Settings(BaseModel):
     llm_max_retries: int = Field(default_factory=lambda: int(config_value("llm_max_retries", 2)))
     llm_retry_base_seconds: float = Field(default_factory=lambda: float(config_value("llm_retry_base_seconds", 1.0)))
     web_max_files: int = Field(default_factory=lambda: int(config_value("web_max_files", 20)))
-    web_max_file_bytes: int = Field(default_factory=lambda: int(config_value("web_max_file_bytes", 1_048_576)))
-    web_max_total_bytes: int = Field(default_factory=lambda: int(config_value("web_max_total_bytes", 5_242_880)))
-    web_scan_timeout_seconds: int = Field(default_factory=lambda: int(config_value("web_scan_timeout_seconds", 60)))
+    web_max_file_bytes: int = Field(default_factory=lambda: int(config_value("web_max_file_bytes", 10_485_760)))
+    web_max_total_bytes: int = Field(default_factory=lambda: int(config_value("web_max_total_bytes", 52_428_800)))
     web_max_concurrent_scans: int = Field(default_factory=lambda: int(config_value("web_max_concurrent_scans", 2)))
 
     @property

@@ -42,7 +42,7 @@ def test_web_analysis_runs_in_isolated_process(tmp_path):
     )
 
     report = _run_pipeline_process(
-        Settings(provider="mock").model_dump(mode="json"), str(tmp_path), 20
+        Settings(provider="mock").model_dump(mode="json"), str(tmp_path)
     )
 
     assert any(finding.cwe == "CWE-134" for finding in report.artifacts.findings)
