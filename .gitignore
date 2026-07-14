@@ -4,3 +4,4 @@ __pycache__/
 report.md
 report.json
 project_config.json
+.env
