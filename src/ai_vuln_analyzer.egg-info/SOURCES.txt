@@ -15,6 +15,7 @@ src/ai_vuln_analyzer/agents/integer_agent.py
 src/ai_vuln_analyzer/agents/manager.py
 src/ai_vuln_analyzer/agents/null_uninit_agent.py
 src/ai_vuln_analyzer/agents/planner.py
+src/ai_vuln_analyzer/agents/semantic_agents.py
 src/ai_vuln_analyzer/agents/student.py
 src/ai_vuln_analyzer/agents/teacher.py
 src/ai_vuln_analyzer/agents/uaf_df_agent.py
@@ -23,6 +24,7 @@ src/ai_vuln_analyzer/analysis/ast_analyzer.py
 src/ai_vuln_analyzer/analysis/cfg_analyzer.py
 src/ai_vuln_analyzer/analysis/dangerous_api.py
 src/ai_vuln_analyzer/analysis/file_collector.py
+src/ai_vuln_analyzer/analysis/semantic_flow.py
 src/ai_vuln_analyzer/core/context.py
 src/ai_vuln_analyzer/core/pipeline.py
 src/ai_vuln_analyzer/core/report.py
@@ -40,3 +42,5 @@ src/ai_vuln_analyzer/verifier/patch_checker.py
 src/ai_vuln_analyzer/web/__init__.py
 src/ai_vuln_analyzer/web/app.py
 src/ai_vuln_analyzer/web/templates/index.html
+tests/test_semantic_detection.py
+tests/test_student_patches.py

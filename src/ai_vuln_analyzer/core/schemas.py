@@ -19,7 +19,31 @@ class FunctionSummary(BaseModel):
     line_end: int
     calls: list[str] = Field(default_factory=list)
     locals: list[str] = Field(default_factory=list)
+    parameters: list[str] = Field(default_factory=list)
+    array_sizes: dict[str, str] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
+
+
+class SemanticEvent(BaseModel):
+    kind: Literal["call", "assignment", "declaration", "condition", "return"]
+    line_start: int
+    line_end: int
+    function: str | None = None
+    text: str
+    callee: str | None = None
+    arguments: list[str] = Field(default_factory=list)
+    target: str | None = None
+    identifiers: list[str] = Field(default_factory=list)
+    tainted_arguments: list[int] = Field(default_factory=list)
+    taint_sources: list[str] = Field(default_factory=list)
+
+
+class DataFlowEdge(BaseModel):
+    source: str
+    target: str
+    line: int
+    function: str | None = None
+    kind: Literal["assignment", "copy", "input", "return"]
 
 
 class AstAnalysis(BaseModel):
@@ -28,6 +52,8 @@ class AstAnalysis(BaseModel):
     parser: str
     functions: list[FunctionSummary] = Field(default_factory=list)
     dangerous_calls: list[dict] = Field(default_factory=list)
+    events: list[SemanticEvent] = Field(default_factory=list)
+    data_flow_edges: list[DataFlowEdge] = Field(default_factory=list)
 
 
 class CfgNode(BaseModel):

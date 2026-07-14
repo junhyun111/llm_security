@@ -13,6 +13,8 @@ openai<2,>=1.30
 
 [treesitter]
 tree-sitter<1,>=0.22
+tree-sitter-c<1,>=0.23
+tree-sitter-cpp<1,>=0.23
 
 [web]
 fastapi<1,>=0.111

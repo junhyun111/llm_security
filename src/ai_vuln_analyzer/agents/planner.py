@@ -24,7 +24,9 @@ class Planner:
 
             try:
                 llm_data = loads(raw)
-                parsed.update({k: v for k, v in llm_data.items() if k in parsed or k == "candidate_cwes"})
+                llm_cwes = llm_data.pop("candidate_cwes", [])
+                parsed.update({k: v for k, v in llm_data.items() if k in parsed})
+                parsed["candidate_cwes"] = sorted(cwes | set(llm_cwes))
             except JSONDecodeError:
                 pass
         return PlannerDecision(

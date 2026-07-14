@@ -8,6 +8,14 @@ from ai_vuln_analyzer.agents.manager import Manager
 from ai_vuln_analyzer.agents.null_uninit_agent import NullUninitAgent
 from ai_vuln_analyzer.agents.planner import Planner
 from ai_vuln_analyzer.agents.student import Student
+from ai_vuln_analyzer.agents.semantic_agents import (
+    CommandInjectionAgent,
+    FormatStringAgent,
+    OffByOneAgent,
+    PathTraversalAgent,
+    UnsafeInputAgent,
+    WeakRandomAgent,
+)
 from ai_vuln_analyzer.agents.teacher import Teacher
 from ai_vuln_analyzer.agents.uaf_df_agent import UafDfAgent
 from ai_vuln_analyzer.agents.verifier import Verifier
@@ -56,13 +64,19 @@ class VulnerabilityPipeline:
         self.settings = settings
         self.llm = build_llm_client(settings)
         self.ast_analyzer = AstAnalyzer()
-        self.cfg_analyzer = CfgAnalyzer()
+        self.cfg_analyzer = CfgAnalyzer(self.ast_analyzer)
         self.planner = Planner(self.llm)
         self.agents = [
             BofOobAgent(self.llm),
             UafDfAgent(self.llm),
             IntegerAgent(self.llm),
             NullUninitAgent(self.llm),
+            CommandInjectionAgent(self.llm),
+            FormatStringAgent(self.llm),
+            PathTraversalAgent(self.llm),
+            UnsafeInputAgent(self.llm),
+            WeakRandomAgent(self.llm),
+            OffByOneAgent(self.llm),
         ]
         self.manager = Manager(self.agents)
         self.teacher = Teacher(self.llm)

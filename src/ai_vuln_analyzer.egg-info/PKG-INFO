@@ -20,6 +20,8 @@ Provides-Extra: anthropic
 Requires-Dist: anthropic<1,>=0.26; extra == "anthropic"
 Provides-Extra: treesitter
 Requires-Dist: tree-sitter<1,>=0.22; extra == "treesitter"
+Requires-Dist: tree-sitter-c<1,>=0.23; extra == "treesitter"
+Requires-Dist: tree-sitter-cpp<1,>=0.23; extra == "treesitter"
 
 # ai_vuln_analyzer
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
+import re
 
 from ai_vuln_analyzer.agents.base import BaseAgent
-from ai_vuln_analyzer.core.schemas import AstAnalysis, CfgAnalysis, VulnerabilityFinding
+from ai_vuln_analyzer.analysis.semantic_flow import base_identifier
+from ai_vuln_analyzer.core.schemas import AstAnalysis, CfgAnalysis, SemanticEvent, VulnerabilityFinding
 
 
 class UafDfAgent(BaseAgent):
@@ -13,35 +14,76 @@ class UafDfAgent(BaseAgent):
     def run(self, ast: list[AstAnalysis], cfg: list[CfgAnalysis]) -> list[VulnerabilityFinding]:
         findings: list[VulnerabilityFinding] = []
         for item in ast:
-            lines = Path(item.file).read_text(encoding="utf-8").splitlines()
-            freed_vars: dict[str, int] = {}
-            for lineno, line in enumerate(lines, start=1):
-                stripped = line.strip()
-                if stripped.startswith("free("):
-                    var = stripped.removeprefix("free(").split(")")[0].strip("&* ")
-                    freed_vars[var] = lineno
-                for var, freed_line in freed_vars.items():
-                    if lineno > freed_line and var and var in stripped and "free(" not in stripped:
-                        cwe = "CWE-416"
-                        vuln_type = "Use-After-Free"
-                        if stripped.startswith("free(") and var in stripped:
-                            cwe = "CWE-415"
-                            vuln_type = "Double Free"
-                        function = next((func for func in item.functions if func.line_start <= lineno <= func.line_end), None)
-                        findings.append(
-                            self._build_finding(
-                                finding_id=f"{self.agent_name}:{self._file_name(item.file)}:{freed_line}:{lineno}",
-                                cwe=cwe,
-                                vulnerability_type=vuln_type,
-                                file=item.file,
-                                function=function.name if function else None,
-                                line_start=freed_line,
-                                line_end=lineno,
-                                source=var,
-                                sink="free/use",
-                                evidence=f"Pointer '{var}' is freed at line {freed_line} and referenced again at line {lineno}.",
-                                confidence=0.86,
-                            )
-                        )
-                        break
+            for function in item.functions:
+                events = [event for event in item.events if event.function == function.name]
+                findings.extend(self._analyze_function(item, sorted(events, key=self._event_order)))
         return findings
+
+    def _analyze_function(self, item: AstAnalysis, events: list[SemanticEvent]) -> list[VulnerabilityFinding]:
+        findings: list[VulnerabilityFinding] = []
+        freed: dict[str, int] = {}
+        reported_uses: set[tuple[str, int]] = set()
+
+        for event in events:
+            api = (event.callee or "").split("::")[-1]
+            if event.kind == "assignment" and event.target:
+                target = event.target.strip("*&() ")
+                if re.fullmatch(r"[A-Za-z_]\w*", target):
+                    freed.pop(target, None)
+
+            if event.kind == "call" and api == "free" and event.arguments:
+                pointer = base_identifier(event.arguments[0])
+                if not pointer:
+                    continue
+                if pointer in freed:
+                    findings.append(self._finding(
+                        item, event, pointer, freed[pointer], "CWE-415", "Double Free", "free",
+                    ))
+                else:
+                    freed[pointer] = event.line_start
+                continue
+
+            for pointer, free_line in freed.items():
+                if not self._dereferences(event, pointer) or (pointer, event.line_start) in reported_uses:
+                    continue
+                reported_uses.add((pointer, event.line_start))
+                findings.append(self._finding(
+                    item, event, pointer, free_line, "CWE-416", "Use-After-Free", api or event.kind,
+                ))
+        return findings
+
+    def _dereferences(self, event: SemanticEvent, pointer: str) -> bool:
+        if pointer not in event.identifiers:
+            return False
+        if event.kind == "call":
+            return any(pointer in argument for argument in event.arguments)
+        if event.kind == "assignment":
+            target = event.target or ""
+            rhs = event.text.split("=", 1)[-1]
+            return pointer in rhs or pointer in target and any(token in target for token in {"[", "->", "*"})
+        if event.kind == "return":
+            return pointer in event.text
+        return False
+
+    def _finding(
+        self,
+        item: AstAnalysis,
+        event: SemanticEvent,
+        pointer: str,
+        free_line: int,
+        cwe: str,
+        vulnerability_type: str,
+        sink: str,
+    ) -> VulnerabilityFinding:
+        return self._build_finding(
+            finding_id=f"{self.agent_name}:{self._file_name(item.file)}:{free_line}:{event.line_start}:{cwe}",
+            cwe=cwe, vulnerability_type=vulnerability_type, file=item.file,
+            function=event.function, line_start=free_line, line_end=event.line_end,
+            source=pointer, sink=sink,
+            evidence=f"Pointer '{pointer}' is freed at line {free_line} and used by '{event.text.strip()}' at line {event.line_start}.",
+            confidence=0.92,
+        )
+
+    def _event_order(self, event: SemanticEvent) -> tuple[int, int, int]:
+        priority = 0 if event.kind == "assignment" else 1
+        return event.line_start, event.line_end, priority

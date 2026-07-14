@@ -10,8 +10,12 @@ class Manager:
 
     def select_agents(self, decision: PlannerDecision) -> list[BaseAgent]:
         selected = []
+        remaining = []
         candidate_cwes = set(decision.candidate_cwes)
         for agent in self.agents:
             if candidate_cwes.intersection(agent.covered_cwes):
                 selected.append(agent)
-        return selected or self.agents
+            else:
+                remaining.append(agent)
+        # Planner output prioritizes cheap deterministic agents; it does not gate recall.
+        return selected + remaining
