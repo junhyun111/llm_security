@@ -26,9 +26,8 @@ def identifiers(expression: str) -> set[str]:
 
 
 def base_identifier(expression: str) -> str | None:
-    without_strings = STRING_PATTERN.sub("", expression)
-    match = IDENTIFIER_PATTERN.search(without_strings)
-    return match.group(0) if match else None
+    names = list(identifiers(expression))
+    return names[0] if names else None
 
 
 def annotate_taint(
@@ -70,18 +69,6 @@ def annotate_taint(
                                 function=function_name,
                                 kind="assignment",
                             ))
-
-            if event.kind == "return":
-                sources = _sources_for_expression(event.text.removeprefix("return"), taint)
-                event_sources.update(sources)
-                for source in sources:
-                    edges.append(DataFlowEdge(
-                        source=source,
-                        target=f"return:{function_name}",
-                        line=event.line_start,
-                        function=function_name,
-                        kind="return",
-                    ))
 
             if event.kind == "call" and event.callee:
                 callee = event.callee.split("::")[-1]

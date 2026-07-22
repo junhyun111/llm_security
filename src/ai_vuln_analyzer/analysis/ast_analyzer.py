@@ -21,12 +21,11 @@ class AstAnalyzer:
         path = Path(file_path)
         code = path.read_text(encoding="utf-8")
         try:
-            functions, events, parse_errors = self._analyze_tree_sitter(path, code)
+            functions, events = self._analyze_tree_sitter(path, code)
             parser_name = "tree-sitter"
         except (ImportError, ModuleNotFoundError):
             functions, events = self._analyze_fallback(path, code)
             parser_name = "regex-fallback"
-            parse_errors = 0
 
         events, data_flow_edges = annotate_taint(events, functions)
         dangerous_calls = []
@@ -49,12 +48,11 @@ class AstAnalyzer:
             dangerous_calls=dangerous_calls,
             events=events,
             data_flow_edges=data_flow_edges,
-            parse_errors=parse_errors,
         )
 
     def _analyze_tree_sitter(
         self, path: Path, code: str
-    ) -> tuple[list[FunctionSummary], list[SemanticEvent], int]:
+    ) -> tuple[list[FunctionSummary], list[SemanticEvent]]:
         from tree_sitter import Language, Parser
 
         if path.suffix.lower() == ".c":
@@ -96,10 +94,7 @@ class AstAnalyzer:
                 notes=[],
             ))
             events.extend(function_events)
-        parse_errors = sum(1 for node in self._walk(tree.root_node) if node.type == "ERROR")
-        if tree.root_node.has_error and parse_errors == 0:
-            parse_errors = 1
-        return functions, events, parse_errors
+        return functions, events
 
     def _function_events(self, body: Any, source: bytes, function: str) -> list[SemanticEvent]:
         events: list[SemanticEvent] = []
@@ -149,8 +144,6 @@ class AstAnalyzer:
                         kind="condition",
                         text=condition_text,
                         identifiers=sorted(identifiers(condition_text)),
-                        control_kind=node.type.removesuffix("_statement"),
-                        scope_end_line=node.end_point[0] + 1,
                         **{key: value for key, value in common.items() if key != "text"},
                     ))
             elif node.type == "return_statement":

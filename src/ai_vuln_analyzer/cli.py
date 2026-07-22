@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 from ai_vuln_analyzer.config import Settings
 from ai_vuln_analyzer.core.pipeline import VulnerabilityPipeline
 from ai_vuln_analyzer.output.json_writer import write_json_report
 from ai_vuln_analyzer.output.markdown_writer import write_markdown_report
-from ai_vuln_analyzer.evaluation.evaluator import evaluate_report, load_ground_truth, load_report
 
 def scan(
     target_path: str,
@@ -59,12 +57,6 @@ def app() -> None:
     serve_parser.add_argument("--host", default=None)
     serve_parser.add_argument("--port", type=int, default=None)
 
-    evaluate_parser = subparsers.add_parser("evaluate", help="Compare a JSON report with ground truth")
-    evaluate_parser.add_argument("report")
-    evaluate_parser.add_argument("ground_truth")
-    evaluate_parser.add_argument("--line-tolerance", type=int, default=1)
-    evaluate_parser.add_argument("--output", type=Path, default=None)
-
     args = parser.parse_args()
     if args.command == "scan":
         scan(
@@ -90,18 +82,6 @@ def app() -> None:
             port=args.port or settings.web_port,
             reload=False,
         )
-    if args.command == "evaluate":
-        metrics = evaluate_report(
-            load_report(args.report),
-            load_ground_truth(args.ground_truth),
-            line_tolerance=max(0, args.line_tolerance),
-        )
-        rendered = json.dumps(metrics.model_dump(mode="json"), indent=2)
-        if args.output:
-            args.output.write_text(rendered, encoding="utf-8")
-            print(f"Evaluation report: {args.output}")
-        else:
-            print(rendered)
 
 
 if __name__ == "__main__":

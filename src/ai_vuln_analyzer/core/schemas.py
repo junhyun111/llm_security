@@ -36,8 +36,6 @@ class SemanticEvent(BaseModel):
     identifiers: list[str] = Field(default_factory=list)
     tainted_arguments: list[int] = Field(default_factory=list)
     taint_sources: list[str] = Field(default_factory=list)
-    control_kind: Literal["if", "for", "while", "do", "switch"] | None = None
-    scope_end_line: int | None = None
 
 
 class DataFlowEdge(BaseModel):
@@ -45,7 +43,7 @@ class DataFlowEdge(BaseModel):
     target: str
     line: int
     function: str | None = None
-    kind: Literal["assignment", "copy", "input", "return", "call", "global", "alias"]
+    kind: Literal["assignment", "copy", "input", "return"]
 
 
 class AstAnalysis(BaseModel):
@@ -56,7 +54,6 @@ class AstAnalysis(BaseModel):
     dangerous_calls: list[dict] = Field(default_factory=list)
     events: list[SemanticEvent] = Field(default_factory=list)
     data_flow_edges: list[DataFlowEdge] = Field(default_factory=list)
-    parse_errors: int = 0
 
 
 class CfgNode(BaseModel):
@@ -69,7 +66,7 @@ class CfgNode(BaseModel):
 class CfgEdge(BaseModel):
     source: str
     target: str
-    kind: Literal["flow", "branch", "loop", "call", "return"] = "flow"
+    kind: Literal["flow", "branch", "call"] = "flow"
 
 
 class CfgAnalysis(BaseModel):
@@ -96,8 +93,6 @@ class VulnerabilityFinding(BaseModel):
     confidence: float
     status: Literal["candidate", "verified", "rejected", "patched", "unresolved"] = "candidate"
     root_cause: str | None = None
-    finding_role: Literal["primary", "secondary"] = "primary"
-    related_finding_id: str | None = None
 
 
 class PatchSuggestion(BaseModel):
@@ -116,37 +111,6 @@ class VerificationResult(BaseModel):
     reason: str
     rerun_agents: list[str] = Field(default_factory=list)
     remaining_risks: list[str] = Field(default_factory=list)
-    parse_succeeded: bool | None = None
-    compile_succeeded: bool | None = None
-    vulnerability_re_detected: bool | None = None
-    compiler_output: str | None = None
-    introduced_identifiers: list[str] = Field(default_factory=list)
-
-
-class PatchConflict(BaseModel):
-    file: str
-    line_start: int
-    line_end: int
-    finding_ids: list[str] = Field(default_factory=list)
-    reason: str
-
-
-class IntegratedPatchVerification(BaseModel):
-    applied_finding_ids: list[str] = Field(default_factory=list)
-    skipped_finding_ids: list[str] = Field(default_factory=list)
-    conflicts: list[PatchConflict] = Field(default_factory=list)
-    parse_succeeded: bool
-    compile_succeeded: bool | None = None
-    re_detected_finding_ids: list[str] = Field(default_factory=list)
-    verified: bool = False
-    reason: str
-    compiler_output: str | None = None
-
-
-class AnalysisFailure(BaseModel):
-    file: str
-    stage: Literal["ast", "cfg"]
-    error: str
 
 
 class AnalysisBundle(BaseModel):
@@ -160,9 +124,6 @@ class PipelineArtifacts(BaseModel):
     findings: list[VulnerabilityFinding] = Field(default_factory=list)
     patches: list[PatchSuggestion] = Field(default_factory=list)
     verifications: list[VerificationResult] = Field(default_factory=list)
-    integrated_verification: IntegratedPatchVerification | None = None
-    analysis_failures: list[AnalysisFailure] = Field(default_factory=list)
-    llm_warning: str | None = None
     rounds: int = 1
 
 
